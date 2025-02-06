@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ファイルアップロード</title>
+</head>
+<body>
+    <h2>ファイルアップロード & ダウンロード</h2>
+    <input type="file" id="fileInput">
+    <button onclick="uploadFile()">アップロード</button>
+    <h3>アップロードされたファイル</h3>
+    <ul id="fileList"></ul>
+
+    <script>
+        let fileDB = [];
+        
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length === 0) return;
+            
+            const file = fileInput.files[0];
+            
+            // 既に同じファイル名がある場合はアップロードを拒否
+            if (fileDB.some(f => f.name === file.name)) {
+                alert('同じファイルはアップロードできません！');
+                return;
+            }
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(event) {
+                const fileData = {
+                    name: file.name,
+                    data: event.target.result
+                };
+                fileDB.push(fileData);
+                localStorage.setItem('files', JSON.stringify(fileDB));
+                displayFiles();
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        function displayFiles() {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            
+            fileDB.forEach((file, index) => {
+                const listItem = document.createElement('li');
+                
+                const link = document.createElement('a');
+                link.href = file.data;
+                link.download = file.name;
+                link.textContent = file.name;
+                
+                const preview = document.createElement('img');
+                preview.src = file.data;
+                preview.style.width = '50px';
+                preview.style.height = '50px';
+                preview.style.marginLeft = '10px';
+                
+                listItem.appendChild(link);
+                listItem.appendChild(preview);
+                fileList.appendChild(listItem);
+            });
+        }
+        
+        function loadFiles() {
+            const storedFiles = localStorage.getItem('files');
+            if (storedFiles) {
+                fileDB = JSON.parse(storedFiles);
+                displayFiles();
+            }
+        }
+        
+        window.onload = loadFiles;
+    </script>
+</body>
+</html>
