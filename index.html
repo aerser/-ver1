@@ -3,9 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ファイルアップロード</title>
+    <title>ファイルアップロード & ユーザーログイン</title>
 </head>
 <body>
+    <h2>ユーザーログイン</h2>
+    <input type="text" id="username" placeholder="ユーザー名">
+    <button onclick="login()">ログイン</button>
+    <button onclick="logout()">ログアウト</button>
+    <p id="loginStatus">未ログイン</p>
+
     <h2>ファイルアップロード & ダウンロード</h2>
     <input type="file" id="fileInput">
     <button onclick="uploadFile()">アップロード</button>
@@ -14,8 +20,34 @@
 
     <script>
         let fileDB = [];
+        let currentUser = localStorage.getItem('currentUser') || null;
+        
+        function login() {
+            const username = document.getElementById('username').value;
+            if (!username) {
+                alert('ユーザー名を入力してください！');
+                return;
+            }
+            currentUser = username;
+            localStorage.setItem('currentUser', username);
+            document.getElementById('loginStatus').innerText = `ログイン中: ${username}`;
+            loadFiles();
+        }
+        
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            document.getElementById('loginStatus').innerText = '未ログイン';
+            fileDB = [];
+            displayFiles();
+        }
         
         function uploadFile() {
+            if (!currentUser) {
+                alert('ログインしてください！');
+                return;
+            }
+            
             const fileInput = document.getElementById('fileInput');
             if (fileInput.files.length === 0) return;
             
@@ -32,10 +64,11 @@
             reader.onload = function(event) {
                 const fileData = {
                     name: file.name,
-                    data: event.target.result
+                    data: event.target.result,
+                    user: currentUser
                 };
                 fileDB.push(fileData);
-                localStorage.setItem('files', JSON.stringify(fileDB));
+                localStorage.setItem(`files_${currentUser}`, JSON.stringify(fileDB));
                 displayFiles();
             };
             
@@ -67,7 +100,9 @@
         }
         
         function loadFiles() {
-            const storedFiles = localStorage.getItem('files');
+            if (!currentUser) return;
+            document.getElementById('loginStatus').innerText = `ログイン中: ${currentUser}`;
+            const storedFiles = localStorage.getItem(`files_${currentUser}`);
             if (storedFiles) {
                 fileDB = JSON.parse(storedFiles);
                 displayFiles();
