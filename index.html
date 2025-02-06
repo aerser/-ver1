@@ -4,44 +4,91 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ファイルアップロード & ユーザーログイン</title>
+    <style>
+        #fileSection {
+            display: none;
+        }
+    </style>
 </head>
 <body>
-    <h2>ユーザーログイン</h2>
+    <h2>ユーザーログイン / 新規登録</h2>
     <input type="text" id="username" placeholder="ユーザー名">
-    <button onclick="login()">ログイン</button>
-    <button onclick="logout()">ログアウト</button>
+    <input type="password" id="password" placeholder="パスワード">
+    <button id="loginButton" onclick="login()">ログイン</button>
+    <button id="registerButton" onclick="register()">新規登録</button>
+    <button id="logoutButton" onclick="logout()" style="display:none;">ログアウト</button>
     <p id="loginStatus">未ログイン</p>
 
-    <h2>ファイルアップロード & ダウンロード</h2>
-    <input type="file" id="fileInput">
-    <button onclick="uploadFile()">アップロード</button>
-    <h3>アップロードされたファイル</h3>
-    <ul id="fileList"></ul>
+    <div id="fileSection">
+        <h2>ファイルアップロード & ダウンロード</h2>
+        <input type="file" id="fileInput">
+        <button onclick="uploadFile()">アップロード</button>
+        <h3>アップロードされたファイル</h3>
+        <ul id="fileList"></ul>
+    </div>
 
     <script>
         let fileDB = [];
+        let users = JSON.parse(localStorage.getItem('users')) || {};
         let currentUser = localStorage.getItem('currentUser') || null;
         
+        function register() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            if (!username || !password) {
+                alert('ユーザー名とパスワードを入力してください！');
+                return;
+            }
+            if (users[username]) {
+                alert('このユーザー名は既に登録されています！');
+                return;
+            }
+            users[username] = password;
+            localStorage.setItem('users', JSON.stringify(users));
+            alert('登録完了！ログインしてください。');
+        }
+
         function login() {
             const username = document.getElementById('username').value;
-            if (!username) {
-                alert('ユーザー名を入力してください！');
+            const password = document.getElementById('password').value;
+            if (!username || !password) {
+                alert('ユーザー名とパスワードを入力してください！');
+                return;
+            }
+            if (!users[username] || users[username] !== password) {
+                alert('ユーザー名またはパスワードが間違っています！');
                 return;
             }
             currentUser = username;
             localStorage.setItem('currentUser', username);
-            document.getElementById('loginStatus').innerText = `ログイン中: ${username}`;
+            updateUI();
             loadFiles();
         }
         
         function logout() {
             currentUser = null;
             localStorage.removeItem('currentUser');
-            document.getElementById('loginStatus').innerText = '未ログイン';
+            updateUI();
             fileDB = [];
             displayFiles();
         }
         
+        function updateUI() {
+            if (currentUser) {
+                document.getElementById('loginStatus').innerText = `ログイン中: ${currentUser}`;
+                document.getElementById('fileSection').style.display = 'block';
+                document.getElementById('logoutButton').style.display = 'inline';
+                document.getElementById('loginButton').style.display = 'none';
+                document.getElementById('registerButton').style.display = 'none';
+            } else {
+                document.getElementById('loginStatus').innerText = '未ログイン';
+                document.getElementById('fileSection').style.display = 'none';
+                document.getElementById('logoutButton').style.display = 'none';
+                document.getElementById('loginButton').style.display = 'inline';
+                document.getElementById('registerButton').style.display = 'inline';
+            }
+        }
+
         function uploadFile() {
             if (!currentUser) {
                 alert('ログインしてください！');
@@ -53,7 +100,6 @@
             
             const file = fileInput.files[0];
             
-            // 既に同じファイル名がある場合はアップロードを拒否
             if (fileDB.some(f => f.name === file.name)) {
                 alert('同じファイルはアップロードできません！');
                 return;
@@ -100,8 +146,9 @@
         }
         
         function loadFiles() {
-            if (!currentUser) return;
-            document.getElementById('loginStatus').innerText = `ログイン中: ${currentUser}`;
+            if (!currentUser) {
+                return;
+            }
             const storedFiles = localStorage.getItem(`files_${currentUser}`);
             if (storedFiles) {
                 fileDB = JSON.parse(storedFiles);
@@ -109,7 +156,7 @@
             }
         }
         
-        window.onload = loadFiles;
+        window.onload = updateUI;
     </script>
 </body>
 </html>
